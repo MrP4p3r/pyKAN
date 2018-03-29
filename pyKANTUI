@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+#  -*- coding: utf-8 -*-
+
+from libPyKANTUI.application import init_app
+
+
+def main():
+    app = init_app()
+    app.start()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
