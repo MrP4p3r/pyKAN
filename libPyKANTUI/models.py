@@ -19,7 +19,7 @@ class Mod:
             identifier=dct['identifier'],
             name=dct['name'],
             version=dct['version'],
-            status=dct['status'],
+            status=dct.get('status', 'Not installed'),
         )
 
     def to_dict(self):

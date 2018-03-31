@@ -3,14 +3,14 @@
 import urwid
 
 from .widgets import MainFrame
-from .adapters import PyKanComposite
+from .adapters import PyKanService
 
 
 class Application(object):
 
     def __init__(self, pykan, palette):
         self.pykan = pykan
-        """:type: PyKanComposite"""
+        """:type: PyKanService"""
 
         self._tui_ready = False
 
@@ -25,7 +25,7 @@ class Application(object):
 
 
 def init_app():
-    pykan = PyKanComposite()
+    pykan = PyKanService()
 
     palette = [
         ('inverted', 'standout', ''),

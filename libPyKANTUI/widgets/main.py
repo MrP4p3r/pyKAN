@@ -3,6 +3,8 @@
 import urwid
 
 from . import generic
+from . import tabularlist
+from . import signalbus
 
 
 class MainFrame(urwid.Frame):
@@ -19,7 +21,7 @@ class MainFrame(urwid.Frame):
         )
 
         mods_menu = ModsMenu(self.app)
-        urwid.connect_signal(mods_menu, 'on_section_select', self.on_section_select)
+        signalbus.subscribe('update_status', self.set_status)
 
         self.set_body(mods_menu)
 
@@ -31,40 +33,47 @@ class MainFrame(urwid.Frame):
             raise urwid.ExitMainLoop('Quit')
         return super().keypress(size, key)
 
-    def on_section_select(self, mods_list, section_name):
-        self.set_status(f'Section {section_name} was selected.')
-
-        if section_name == 'Installed':
-            mods = self.app.pykan.list_installed()
-            mods_list.set_mods(mods)
-        else:
-            mods_list.set_mods([])
-
 
 class ModsMenu(urwid.WidgetWrap):
 
     def __init__(self, app):
         self.app = app
 
-        self._mods_list = ModsList()
+        self._mods_list = ModsList.create()
 
         super().__init__(
             urwid.Columns([
-                (30, generic.SimpleMenu('Sections', ['All', 'Installed'], choice_callback=self.section_selected)),
+                (30, generic.SimpleMenu('Sections', ['All', 'Installed'], choice_callback=self.on_section_select)),
                 self._mods_list,
             ], dividechars=1)
         )
 
-    def section_selected(self, loop, section_name):
-        urwid.emit_signal(self, 'on_section_select', self._mods_list, section_name)
+    def on_section_select(self, loop, section_name):
+        signalbus.send('update_status', f'Section {section_name} was selected.')
+
+        mods = None
+        if section_name == 'Installed':
+            mods = self.app.pykan.mods.list_installed()
+        elif section_name == 'All':
+            mods = self.app.pykan.mods.list_all()
+
+        self._mods_list.clear()
+        if mods:
+            self._mods_list.extend(mods)
+            self._mods_list.set_focus(0)
 
 
-urwid.register_signal(ModsMenu, 'on_section_select')
+urwid.register_signal(ModsMenu, {'status_update'})
 
 
-class ModsList(urwid.WidgetWrap):
+class ModsList(tabularlist.TabularList):
 
-    def __init__(self):
+    @classmethod
+    def create(cls, mods=None):
+        """
+        :param list[libPyKANTUI.models.Mod] mods:
+        :rtype: ModsList
+        """
 
         table_header = urwid.Padding(
             urwid.Columns([
@@ -72,25 +81,19 @@ class ModsList(urwid.WidgetWrap):
                 (20, urwid.Text('Version')),
                 urwid.Text('Name')
             ]),
-            left=2, right=2
+            left=2,
+            right=2,
         )
 
-        header = urwid.Pile([
-            urwid.AttrMap(urwid.Text('Mods'), 'inverted'),
-            # urwid.Divider(),
-            table_header,
-        ])
+        header = urwid.Pile([urwid.AttrMap(urwid.Text('Mods'), 'inverted'), table_header])
 
-        body = urwid.ListBox(urwid.SimpleFocusListWalker([]))
-
-        super().__init__(urwid.Frame(body, header=header, footer=urwid.Divider()))
-
-    def set_mods(self, mods):
-        w = self._wrapped_widget.body.body
-        """:type: urwid.SimpleFocusListWalker"""
-
-        mod_rows = [
-            generic.WidgetButton(
+        def row_factory(mod):
+            """
+            :param libPyKANTUI.models.Mod mod:
+            :return: Mod representation
+            :rtype: urwid.Widget
+            """
+            row = generic.WidgetButton(
                 urwid.Padding(
                     urwid.Columns([
                         (20, urwid.Text(mod.version)),
@@ -101,8 +104,7 @@ class ModsList(urwid.WidgetWrap):
                 icon_char=mod.status[0],
                 delimiter='  '
             )
-            for mod in mods
-        ]
 
-        w.clear()
-        w.extend(mod_rows)
+            return row
+
+        return cls(header, row_factory=row_factory, data=mods)
