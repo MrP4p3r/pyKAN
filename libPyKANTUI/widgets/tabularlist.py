@@ -5,14 +5,14 @@ import urwid
 
 class TabularList(urwid.WidgetWrap):
 
-    def __init__(self, header, row_factory, data=None):
+    def __init__(self, header, footer, row_factory, data=None):
         data = data or []
 
         self._row_factory = row_factory
 
         self._list = urwid.SimpleFocusListWalker([])
 
-        widget = urwid.Frame(urwid.ListBox(self._list), header=header)
+        widget = urwid.Frame(urwid.ListBox(self._list), header=header, footer=footer)
         super().__init__(widget)
 
         self.extend(data)

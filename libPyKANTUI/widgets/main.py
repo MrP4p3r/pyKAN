@@ -39,7 +39,7 @@ class ModsMenu(urwid.WidgetWrap):
     def __init__(self, app):
         self.app = app
 
-        self._mods_list = ModsList.create()
+        self._mods_list = ModsList.create(on_press=self.on_mod_select)
 
         super().__init__(
             urwid.Columns([
@@ -62,6 +62,9 @@ class ModsMenu(urwid.WidgetWrap):
             self._mods_list.extend(mods)
             self._mods_list.set_focus(0)
 
+    def on_mod_select(self, button, mod):
+        signalbus.send('update_status', f'Mod {mod.name} was selected')
+
 
 urwid.register_signal(ModsMenu, {'status_update'})
 
@@ -69,9 +72,10 @@ urwid.register_signal(ModsMenu, {'status_update'})
 class ModsList(tabularlist.TabularList):
 
     @classmethod
-    def create(cls, mods=None):
+    def create(cls, mods=None, on_press=None):
         """
         :param list[libPyKANTUI.models.Mod] mods:
+        :param callable on_press:
         :rtype: ModsList
         """
 
@@ -101,10 +105,14 @@ class ModsList(tabularlist.TabularList):
                     ]),
                     align='left'
                 ),
+                on_press=on_press,
+                user_data=mod,
                 icon_char=mod.status[0],
                 delimiter='  '
             )
 
             return row
 
-        return cls(header, row_factory=row_factory, data=mods)
+        footer = urwid.Divider()
+
+        return cls(header, footer, row_factory=row_factory, data=mods)
