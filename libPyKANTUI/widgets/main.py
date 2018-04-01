@@ -3,7 +3,6 @@
 import urwid
 
 from . import generic
-from . import tabularlist
 from . import signalbus
 
 
@@ -43,7 +42,7 @@ class ModsMenu(urwid.WidgetWrap):
 
         super().__init__(
             urwid.Columns([
-                (30, generic.SimpleMenu('Sections', ['All', 'Installed'], choice_callback=self.on_section_select)),
+                (30, generic.ItemListFrame.from_text_items('Sections', ['All', 'Installed'], on_press=self.on_section_select)),
                 self._mods_list,
             ], dividechars=1)
         )
@@ -69,7 +68,7 @@ class ModsMenu(urwid.WidgetWrap):
 urwid.register_signal(ModsMenu, {'status_update'})
 
 
-class ModsList(tabularlist.TabularList):
+class ModsList(generic.ItemListFrame):
 
     @classmethod
     def create(cls, mods=None, on_press=None):
@@ -92,14 +91,18 @@ class ModsList(tabularlist.TabularList):
         header = urwid.Pile([urwid.AttrMap(urwid.Text('Mods'), 'inverted'), table_header])
 
         def row_factory(mod):
-            """
+            """Creates mod representation as button in ItemListFrame.
+
             :param libPyKANTUI.models.Mod mod:
             :return: Mod representation
             :rtype: urwid.Widget
+
             """
+
             row = generic.WidgetButton(
                 urwid.Padding(
                     urwid.Columns([
+                        (1, urwid.Divider()),
                         (20, urwid.Text(mod.version)),
                         urwid.Text(mod.name),
                     ]),
@@ -108,7 +111,6 @@ class ModsList(tabularlist.TabularList):
                 on_press=on_press,
                 user_data=mod,
                 icon_char=mod.status[0],
-                delimiter='  '
             )
 
             return row
