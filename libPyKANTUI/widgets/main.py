@@ -28,17 +28,21 @@ class MainFrame(urwid.Frame):
         self._status_bar.set_text(markup)
 
     def keypress(self, size, key):
+        if super().keypress(size, key) is None:
+            return
         if key == 'q':
             raise urwid.ExitMainLoop('Quit')
-        return super().keypress(size, key)
+        return key
 
 
 class ModsMenu(urwid.WidgetWrap):
 
     def __init__(self, app):
         self.app = app
+        """:type: libPyKANTUI.application.Application"""
 
         self._mods_list = ModsList.create(on_press=self.on_mod_select)
+        self._selected_section = 'All'
 
         super().__init__(
             urwid.Columns([
@@ -46,6 +50,10 @@ class ModsMenu(urwid.WidgetWrap):
                 self._mods_list,
             ], dividechars=1)
         )
+
+        urwid.connect_signal(self._mods_list, 'search_text_update', self.on_search_text_update)
+        # Hack to automatically select 'All'
+        self.on_section_select(self.app.loop, 'All')
 
     def on_section_select(self, loop, section_name):
         signalbus.send('update_status', f'Section {section_name} was selected.')
@@ -56,6 +64,8 @@ class ModsMenu(urwid.WidgetWrap):
         elif section_name == 'All':
             mods = self.app.pykan.mods.list_all()
 
+        self._selected_section = section_name
+
         self._mods_list.clear()
         if mods:
             self._mods_list.extend(mods)
@@ -64,10 +74,15 @@ class ModsMenu(urwid.WidgetWrap):
     def on_mod_select(self, button, mod):
         signalbus.send('update_status', f'Mod {mod.name} was selected')
 
+    def on_search_text_update(self, text):
+        signalbus.send('update_status', f'Searching: {text}')
+        # self.app.pykan.mods.
+
 
 urwid.register_signal(ModsMenu, {'status_update'})
 
 
+@generic.with_signals({'search_text_update'})
 class ModsList(generic.ItemListFrame):
 
     @classmethod
@@ -115,6 +130,29 @@ class ModsList(generic.ItemListFrame):
 
             return row
 
-        footer = urwid.Divider()
+        footer = search_edit = urwid.Edit()
 
-        return cls(header, footer, row_factory=row_factory, data=mods)
+        instance = cls(header, footer, row_factory=row_factory, data=mods)
+        instance._search_edit = search_edit
+        urwid.connect_signal(footer, 'change', instance.on_search_text_change)
+
+        return instance
+
+    def keypress(self, size, key):
+        if super().keypress(size, key) is None:
+            return
+
+        if key == '/':
+            self.focus_footer()
+        elif key == 'esc':
+            if self._frame_widget.focus_part == 'footer':
+                self.focus_body()
+                self._search_edit.set_edit_text('')
+        elif key == 'enter':
+            if self._frame_widget.focus_part == 'footer':
+                self.focus_body()
+        else:
+            return key
+
+    def on_search_text_change(self, widget_edit, text):
+        urwid.emit_signal(self, 'search_text_update', text)

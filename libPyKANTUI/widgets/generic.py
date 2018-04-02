@@ -55,10 +55,12 @@ class ItemListFrame(urwid.WidgetWrap):
         self._row_factory = row_factory
         self._list = urwid.SimpleFocusListWalker([])
 
-        widget = urwid.Frame(urwid.ListBox(self._list), header=header, footer=footer)
-        super().__init__(widget)
+        self._frame_widget = urwid.Frame(urwid.ListBox(self._list), header=header, footer=footer)
+        super().__init__(self._frame_widget)
 
         self.extend(data)
+
+        self.set_focus(0)
 
     def append(self, item):
         self.extend([item])
@@ -71,6 +73,12 @@ class ItemListFrame(urwid.WidgetWrap):
 
     def set_focus(self, position):
         self._list.set_focus(position)
+
+    def focus_footer(self):
+        self._frame_widget.set_focus('footer')
+
+    def focus_body(self):
+        self._frame_widget.set_focus('body')
 
     @classmethod
     def from_text_items(cls, title, items, on_press=None):

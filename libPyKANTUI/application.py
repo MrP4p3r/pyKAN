@@ -14,11 +14,15 @@ class Application(object):
 
         self._tui_ready = False
 
+        placeholder = urwid.WidgetWrap(urwid.Filler(urwid.Text('Starting...', align='center')))
+        self.loop = urwid.MainLoop(placeholder, palette=palette)
+        """:type: urwid.MainLoop"""
+
         self.main = MainFrame(self)
         """:type: MainFrame"""
 
-        self.loop = urwid.MainLoop(urwid.LineBox(self.main), palette=palette)
-        """:type: urwid.MainLoop"""
+        actual_widget = urwid.LineBox(self.main)
+        placeholder._set_w(actual_widget)
 
     def start(self):
         self.loop.run()
