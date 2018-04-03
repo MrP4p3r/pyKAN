@@ -29,3 +29,7 @@ class Mod:
             'version': self.version,
             'status': self.status,
         }
+
+    @classmethod
+    def from_dicts(cls, it):
+        return map(cls.from_dict, it)

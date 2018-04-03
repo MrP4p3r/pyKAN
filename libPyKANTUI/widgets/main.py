@@ -43,6 +43,7 @@ class ModsMenu(urwid.WidgetWrap):
 
         self._mods_list = ModsList.create(on_press=self.on_mod_select)
         self._selected_section = 'All'
+        self._mod_filters = {}
 
         super().__init__(
             urwid.Columns([
@@ -58,25 +59,31 @@ class ModsMenu(urwid.WidgetWrap):
     def on_section_select(self, loop, section_name):
         signalbus.send('update_status', f'Section {section_name} was selected.')
 
-        mods = None
         if section_name == 'Installed':
-            mods = self.app.pykan.mods.list_installed()
+            self._mod_filters['status'] = 'installed'
         elif section_name == 'All':
-            mods = self.app.pykan.mods.list_all()
+            self._mod_filters.clear()
+        else:
+            raise KeyError('Unknown section')
 
         self._selected_section = section_name
 
-        self._mods_list.clear()
-        if mods:
-            self._mods_list.extend(mods)
-            self._mods_list.set_focus(0)
+        self.update_mod_list()
 
     def on_mod_select(self, button, mod):
         signalbus.send('update_status', f'Mod {mod.name} was selected')
 
     def on_search_text_update(self, text):
         signalbus.send('update_status', f'Searching: {text}')
-        # self.app.pykan.mods.
+        self._mod_filters['fuzzyfindtext'] = text
+        self.update_mod_list()
+
+    def update_mod_list(self):
+        mods = self.app.pykan.mods.find(self._mod_filters)
+        self._mods_list.clear()
+        if mods:
+            self._mods_list.extend(mods)
+            self._mods_list.set_focus(0)
 
 
 urwid.register_signal(ModsMenu, {'status_update'})
