@@ -54,10 +54,10 @@ class PyKanMods(object):
         return list(mod_list_it)
 
 
-def fuzzyfinder(input, collection, accessor=lambda x: x, limit=100):
+def fuzzyfinder(search_string, collection, accessor=lambda x: x, threshold=80, limit=100):
     """Slightly *modified* version of fuzzyfinder function from `fuzzyfinder` package.
 
-    :param str input:
+    :param str search_string:
         A partial string which is typically entered by a user.
 
     :param iterable collection:
@@ -79,8 +79,8 @@ def fuzzyfinder(input, collection, accessor=lambda x: x, limit=100):
     import re
 
     suggestions = []
-    input = str(input) if not isinstance(input, str) else input
-    pat = '.*?'.join(map(re.escape, input))
+    search_string = str(search_string) if not isinstance(search_string, str) else search_string
+    pat = '.*?'.join(map(re.escape, search_string))
     pat = '(?=({0}))'.format(pat)   # lookahead regex to manage overlapping matches
     regex = re.compile(pat, re.IGNORECASE)
 
@@ -101,4 +101,4 @@ def fuzzyfinder(input, collection, accessor=lambda x: x, limit=100):
         if idx >= limit:
             break
 
-    return (z[-1] for z in sorted(suggestions, key=lambda z: (z[0], z[1])))
+    return (z[-1] for z in sorted(suggestions, key=lambda z: z[0]))
